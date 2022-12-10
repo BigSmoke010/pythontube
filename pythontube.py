@@ -13,6 +13,8 @@ vidtru = 0
 def changevarz():
     global vidtru
     vidtru = 0
+
+
 def changevary():
     global vidtru
     vidtru = 1
