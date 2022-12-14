@@ -1,96 +1,72 @@
-from pytube import YouTube
-from pytube import Playlist
-from tkinter import *
-from tkinter.ttk import *
 import os
+import wx
+from pytube import YouTube
+import time
+from threading import Thread
 
-root = Tk()
-option = IntVar()
-option.set(0)
-vidtru = 0
+class ytthread(Thread):
+    def __init__(self, args):
+        super().__init__(args=args)
+        self.start()
 
+    def run(self):
+        time.sleep(5)
+        wx.CallAfter(self.yt(self._args[0], self._args[1]))
 
-def changevarz():
-    global vidtru
-    vidtru = 0
+    def yt(self, link, type):
+        vd = YouTube(link)
+        print("Downloading : " + vd.title)
 
-
-def changevary():
-    global vidtru
-    vidtru = 1
-
-
-vdio_format = Radiobutton(root,
-                          variable=option,
-                          value=0,
-                          text='mp4',
-                          command=changevarz)
-vdio_format.grid(row=0, column=0)
-
-plylist_format = Radiobutton(root,
-                             variable=option,
-                             value=1,
-                             text='mp3',
-                             command=changevary)
-plylist_format.grid(row=0, column=2)
-
-lbl = Label(root, text='Please input the Video link')
-lbl.grid(row=0, column=1)
-
-inpt = Entry(root, width=50)
-inpt.grid(row=1, column=1)
-
-root.columnconfigure(0, minsize=100)
-root.rowconfigure(0, minsize=50)
-root.columnconfigure(2, minsize=100)
-root.rowconfigure(3, minsize=50)
-
-
-def submitvideo():
-    vd = YouTube(inpt.get())
-    print("Downloading : " + vd.title)
-    if vidtru == 0:
-        vd.streams.get_highest_resolution().download(output_path='downloads/')
-        print('succesfully downloaded')
-
-    else:
-        vid = vd.streams.filter(only_audio=True).first()
-        outvid = vid.download(output_path='downloads/')
-        base, ext = os.path.splitext(outvid)
-        new_file = base + '.mp3'
-        os.rename(outvid, new_file)
-        print('succesfully downloaded')
-
-
-sbmit = Button(root, text='Submit', command=submitvideo)
-sbmit.grid(row=2, column=1)
-
-lbl = Label(root, text='Please input the Playlist link')
-lbl.grid(row=3, column=1)
-inputt = Entry(root, width=50)
-inputt.grid(row=4, column=1)
-
-
-def submitplaylist():
-    vd = Playlist(inputt.get())
-    for i in vd.videos:
-        print('Downloading : ' + i.title)
-
-        if vidtru == 0:
-            i.streams.get_highest_resolution().first().download(
-                output_path='downloads/')
+        if type == 'mp4':
+            vd.streams.get_highest_resolution().download(output_path='downloads/')
             print('succesfully downloaded')
 
         else:
-            vid = i.streams.filter(only_audio=True).first()
+            vid = vd.streams.filter(only_audio=True).first()
             outvid = vid.download(output_path='downloads/')
-            base, ext = os.path.splitext(outvid)
+            base = os.path.splitext(outvid)
             new_file = base + '.mp3'
             os.rename(outvid, new_file)
             print('succesfully downloaded')
 
 
-sbmit = Button(root, text='Submit', command=submitplaylist)
-sbmit.grid(row=5, column=1)
+class myFrame(wx.Frame):
+    def __init__(self, *args, **kw):
+        super(myFrame, self).__init__(*args, **kw)
+        panel = wx.Panel(self)
+        gridsizr = wx.GridSizer(3,3,0,0)
+        self.radiobutton1 = wx.RadioButton(panel, label='mp4')
+        radiobutton2 = wx.RadioButton(panel, label='mp3')
+        self.type = 'mp4'
+        gridsizr.Add(self.radiobutton1, 0, wx.LEFT, 0)
+        gridsizr.Add(wx.StaticText(panel, -1, 'Enter Link'), 0, wx.ALIGN_CENTER)
+        gridsizr.Add(radiobutton2, 0, wx.ALIGN_RIGHT, 0)
+        gridsizr.Add((0,0), 1, wx.EXPAND)
+        self.txtctrl = wx.TextCtrl(panel, size=(200,30))
+        gridsizr.Add(self.txtctrl,0, wx.ALIGN_CENTER)
+        gridsizr.Add((0,0), 1, wx.EXPAND)
+        gridsizr.Add((0,0), 1, wx.EXPAND)
+        gridsizr.Add(wx.Button(panel, -1, 'Submit'), 0, wx.ALIGN_CENTER)
+        panel.Bind(wx.EVT_BUTTON, self.YoutubeGetLink)
+        panel.Bind(wx.EVT_RADIOBUTTON, self.mp)
+        panel.SetSizerAndFit(gridsizr)
 
-root.mainloop()
+    def mp(self, event):
+        if self.radiobutton1.GetValue():
+            self.type = 'mp4'
+        else:
+            self.type = 'mp3'
+
+
+    def YoutubeGetLink(self, event):
+        ytthread(args=(self.txtctrl.GetValue(),self.type))
+
+class myApp(wx.App):
+    def OnInit(self):
+        self.frame = myFrame(parent=None, title='pytube', size=(450, 135))
+        self.frame.Show()
+        return True
+
+
+app = myApp()
+app.MainLoop()
